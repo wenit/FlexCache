@@ -3,7 +3,6 @@ package protocol
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"strconv"
 )
 
@@ -25,13 +24,49 @@ const (
 	ReplyMultiReply = "*"
 	// NewLine 换行
 	NewLine = "\r\n"
+	// LineR 换行R
+	LineR = '\r'
+	// LineN 换行N
+	LineN = '\n'
 	// Space 分隔符
 	Space = " "
 )
 
 // MarshalStr 字符串编码
 func MarshalStr(cmd string) ([]byte, error) {
-	return MarshalBytes([]byte(cmd))
+	return MarshalBytesArray(ParseCmdStr(cmd)...)
+}
+
+// ParseCmdStr 命令行字符串解析
+func ParseCmdStr(cmd string) [][]byte {
+	runes := []rune(cmd)
+	args := make([][]byte, 0)
+	arg := ""
+	quotation := false
+	disableSpaceFlag := false
+	for _, v := range runes {
+		s := string(v)
+		if s == "\"" {
+			if quotation == false {
+				quotation = true
+				disableSpaceFlag = true
+			} else {
+				quotation = false
+				args = append(args, []byte(arg))
+				arg = ""
+			}
+		} else {
+			if !disableSpaceFlag && s == " " {
+				args = append(args, []byte(arg))
+				arg = ""
+			} else {
+				arg = arg + s
+			}
+
+		}
+	}
+	args = append(args, []byte(arg))
+	return args
 }
 
 // MarshalBytes 字节数组编码
@@ -57,19 +92,65 @@ func MarshalBytes(cmd []byte) ([]byte, error) {
 	return reqBuffer.Bytes(), nil
 }
 
-// UnMarshalBytes 字节数组解码
-func UnMarshalBytes(cmd []byte) {
-	r := bytes.Split(cmd, []byte(NewLine))
-	for _, v := range r {
-		fmt.Println(string(v))
+// MarshalBytesArray 多命令参数
+func MarshalBytesArray(cmds ...[]byte) ([]byte, error) {
+	var buffer bytes.Buffer
+	var reqBuffer bytes.Buffer
+	argsLen := 0
+	for _, v := range cmds {
+		if len(v) > 0 {
+			argsLen++
+			argLen := len(v)
+			buffer.WriteString(ReplyBulk + strconv.Itoa(argLen) + NewLine)
+			buffer.Write(v)
+			buffer.WriteString(NewLine)
+		}
 	}
+	reqBuffer.WriteString(ReplyMultiReply + strconv.Itoa(argsLen) + NewLine)
+	reqBuffer.Write(buffer.Bytes())
+	return reqBuffer.Bytes(), nil
+}
 
-	// first := cmd[0]
-	// if strings.EqualFold(ReplyMultiReply, string(first)) {
+// UnMarshalBytes 字节数组解码
+func UnMarshalBytes(cmd []byte) [][]byte {
+	buff := bytes.NewBuffer(cmd)
 
-	// }
+	fieldsSize := 0
+	readFiled := 0
+	args := make([][]byte, 0)
+	for {
+		feild, _ := buff.ReadBytes(LineN)
+		if len(feild) > 2 && feild[len(feild)-1] == LineN && feild[len(feild)-2] == LineR {
+			firstFlag := string(feild[0])
+			switch firstFlag {
+			case ReplyMultiReply:
+				fieldsSize = ReadRealLen(feild)
+			case ReplyBulk:
+				argLen := ReadRealLen(feild)
+				arg := ReadArg(buff, argLen)
+				args = append(args, arg)
+				readFiled++
+			}
+		}
+		if readFiled >= fieldsSize {
+			break
+		}
+	}
+	return args
+}
 
-	// switch first {
-	// 	case ReplyMultiReply
-	// }
+// ReadRealLen 读取真实数据长度
+func ReadRealLen(feild []byte) int {
+	v := feild[1 : len(feild)-2]
+	s, _ := strconv.Atoi(string(v))
+	return s
+}
+
+// ReadArg 读取指定长度字节数据
+func ReadArg(buff *bytes.Buffer, size int) []byte {
+	data := make([]byte, size)
+	line := make([]byte, 2)
+	buff.Read(data)
+	buff.Read(line)
+	return data
 }

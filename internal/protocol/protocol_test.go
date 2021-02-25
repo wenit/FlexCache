@@ -10,12 +10,17 @@ func TestMarshalStr(t *testing.T) {
 		"get name",
 		"set  name  abc",
 		"set   name     abc   ",
+		"set   name    \" abc  \" ",
 	}
 	for _, cmd := range cmds {
 		marshal, _ := MarshalStr(cmd)
-
-		UnMarshalBytes(marshal)
-
 		t.Log(string(marshal))
+
+		args := UnMarshalBytes(marshal)
+		argStr := ""
+		for _, arg := range args {
+			argStr += string(arg) + " "
+		}
+		t.Log(argStr)
 	}
 }
