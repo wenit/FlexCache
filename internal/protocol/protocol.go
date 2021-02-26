@@ -21,8 +21,8 @@ const (
 	ReplyInteger = ":"
 	// ReplyBulk 批量回复
 	ReplyBulk = "$"
-	// ReplyMultiReply 多条批量回复
-	ReplyMultiReply = "*"
+	// ReplyMultiBulk 多条批量回复
+	ReplyMultiBulk = "*"
 	// NewLine 换行
 	NewLine = "\r\n"
 	// LineR 换行R
@@ -88,7 +88,7 @@ func MarshalBytes(cmd []byte) ([]byte, error) {
 			buffer.WriteString(NewLine)
 		}
 	}
-	reqBuffer.WriteString(ReplyMultiReply + strconv.Itoa(argsLen) + NewLine)
+	reqBuffer.WriteString(ReplyMultiBulk + strconv.Itoa(argsLen) + NewLine)
 	reqBuffer.Write(buffer.Bytes())
 	return reqBuffer.Bytes(), nil
 }
@@ -107,7 +107,7 @@ func MarshalBytesArray(cmds ...[]byte) ([]byte, error) {
 			buffer.WriteString(NewLine)
 		}
 	}
-	reqBuffer.WriteString(ReplyMultiReply + strconv.Itoa(argsLen) + NewLine)
+	reqBuffer.WriteString(ReplyMultiBulk + strconv.Itoa(argsLen) + NewLine)
 	reqBuffer.Write(buffer.Bytes())
 	return reqBuffer.Bytes(), nil
 }
@@ -123,7 +123,7 @@ func UnMarshal(reader *bufio.Reader) [][]byte {
 		if len(feild) > 2 && feild[len(feild)-1] == LineN && feild[len(feild)-2] == LineR {
 			firstFlag := string(feild[0])
 			switch firstFlag {
-			case ReplyMultiReply:
+			case ReplyMultiBulk:
 				fieldsSize = ReadRealLen(feild)
 			case ReplyBulk:
 				argLen := ReadRealLen(feild)
@@ -156,7 +156,7 @@ func UnMarshalBytes(cmd []byte) [][]byte {
 		if len(feild) > 2 && feild[len(feild)-1] == LineN && feild[len(feild)-2] == LineR {
 			firstFlag := string(feild[0])
 			switch firstFlag {
-			case ReplyMultiReply:
+			case ReplyMultiBulk:
 				fieldsSize = ReadRealLen(feild)
 			case ReplyBulk:
 				argLen := ReadRealLen(feild)
@@ -204,4 +204,22 @@ func ReadArgByReader(reader *bufio.Reader, size int) []byte {
 // ReadSingleLineReply 读取单行回复，包含状态回复和错误回复
 func ReadSingleLineReply(data []byte) []byte {
 	return data[1 : len(data)-2]
+}
+
+// MarshalIntergerReply 返回整型编码数据
+// func MarshalIntergerReply(length int) []byte {
+// 	n := IntToBytes(length)
+
+// }
+
+// IntToBytes int类型转bytes
+func IntToBytes(n int) []byte {
+	s := strconv.Itoa(n)
+	return []byte(s)
+}
+
+// BytesToInt bytes转int类型
+func BytesToInt(b []byte) (int, error) {
+	s := string(b)
+	return strconv.Atoi(s)
 }

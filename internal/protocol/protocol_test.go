@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"math"
 	"testing"
 )
 
@@ -38,5 +39,49 @@ func TestUnMarshalBytes(t *testing.T) {
 			t.Log(string(v))
 		}
 
+	}
+}
+
+func TestIntToBytes(t *testing.T) {
+	type args struct {
+		n int
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "1<<0",
+			args: args{1 << 0},
+		},
+		{
+			name: "math.MaxInt8",
+			args: args{math.MaxInt8},
+		},
+		{
+			name: "math.MaxInt16",
+			args: args{math.MaxInt16},
+		},
+		{
+			name: "math.MaxInt32",
+			args: args{math.MaxInt32},
+		},
+		{
+			name: "math.MaxInt64",
+			args: args{math.MaxInt64},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bytes := IntToBytes(tt.args.n)
+			o, _ := BytesToInt(bytes)
+			t.Log("==", o)
+		})
+	}
+}
+
+func BenchmarkIntToBytes(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		IntToBytes(math.MaxInt32)
 	}
 }
