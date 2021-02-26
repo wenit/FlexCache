@@ -24,3 +24,19 @@ func TestMarshalStr(t *testing.T) {
 		t.Log(argStr)
 	}
 }
+
+func TestUnMarshalBytes(t *testing.T) {
+	resps := []string{
+		"+OK\r\n",
+		"+PONG\r\n",
+		"-Err unknown command\r\n",
+	}
+	for _, resp := range resps {
+
+		vv := UnMarshalBytes([]byte(resp))
+		for _, v := range vv {
+			t.Log(string(v))
+		}
+
+	}
+}

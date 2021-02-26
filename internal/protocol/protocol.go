@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"strconv"
@@ -84,7 +85,7 @@ func MarshalBytes(cmd []byte) ([]byte, error) {
 			argLen := len(v)
 			buffer.WriteString(ReplyBulk + strconv.Itoa(argLen) + NewLine)
 			buffer.Write(v)
-			buffer.WriteString("\r\n")
+			buffer.WriteString(NewLine)
 		}
 	}
 	reqBuffer.WriteString(ReplyMultiReply + strconv.Itoa(argsLen) + NewLine)
@@ -111,10 +112,42 @@ func MarshalBytesArray(cmds ...[]byte) ([]byte, error) {
 	return reqBuffer.Bytes(), nil
 }
 
+// UnMarshal 字节数组解码
+func UnMarshal(reader *bufio.Reader) [][]byte {
+	fieldsSize := 0
+	readFiled := 0
+	args := make([][]byte, 0)
+	for {
+		feild, _ := reader.ReadBytes(LineN)
+		// fmt.Println(string(feild))
+		if len(feild) > 2 && feild[len(feild)-1] == LineN && feild[len(feild)-2] == LineR {
+			firstFlag := string(feild[0])
+			switch firstFlag {
+			case ReplyMultiReply:
+				fieldsSize = ReadRealLen(feild)
+			case ReplyBulk:
+				argLen := ReadRealLen(feild)
+				if argLen > 0 {
+					arg := ReadArgByReader(reader, argLen)
+					args = append(args, arg)
+					readFiled++
+				}
+			case ReplyStatus, ReplyError, ReplyInteger:
+				arg := ReadSingleLineReply(feild)
+				args = append(args, arg)
+				break
+			}
+		}
+		if readFiled >= fieldsSize {
+			break
+		}
+	}
+	return args
+}
+
 // UnMarshalBytes 字节数组解码
 func UnMarshalBytes(cmd []byte) [][]byte {
 	buff := bytes.NewBuffer(cmd)
-
 	fieldsSize := 0
 	readFiled := 0
 	args := make([][]byte, 0)
@@ -130,6 +163,10 @@ func UnMarshalBytes(cmd []byte) [][]byte {
 				arg := ReadArg(buff, argLen)
 				args = append(args, arg)
 				readFiled++
+			case ReplyStatus, ReplyError:
+				arg := ReadSingleLineReply(feild)
+				args = append(args, arg)
+				break
 			}
 		}
 		if readFiled >= fieldsSize {
@@ -153,4 +190,18 @@ func ReadArg(buff *bytes.Buffer, size int) []byte {
 	buff.Read(data)
 	buff.Read(line)
 	return data
+}
+
+// ReadArgByReader reader读取指定字节
+func ReadArgByReader(reader *bufio.Reader, size int) []byte {
+	data := make([]byte, size)
+	line := make([]byte, 2)
+	reader.Read(data)
+	reader.Read(line)
+	return data
+}
+
+// ReadSingleLineReply 读取单行回复，包含状态回复和错误回复
+func ReadSingleLineReply(data []byte) []byte {
+	return data[1 : len(data)-2]
 }

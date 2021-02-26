@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aedis/internal/protocol"
 	"bufio"
 	"fmt"
 	"net"
@@ -25,19 +26,23 @@ func main() {
 		fmt.Print(defaultAddress + " >")
 		text, _ := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
-		_, err := conn.Write([]byte(text))
+		// text := "set name a"
+		data, _ := protocol.MarshalStr(text)
+		_, err := conn.Write(data)
 		if err != nil {
 			fmt.Println("Error Write", err.Error())
 			return
 		}
 
-		buff := make([]byte, 512)
-		len, err := conn.Read(buff)
-		if err != nil {
-			fmt.Println("Error Read", err.Error())
-			return
+		respReader := bufio.NewReader(conn)
+
+		respData := protocol.UnMarshal(respReader)
+		if len(respData) == 0 {
+			fmt.Println("(nil)")
+		} else {
+			for _, v := range respData {
+				fmt.Println(string(v))
+			}
 		}
-		rsp := string(buff[0:len])
-		fmt.Println(rsp)
 	}
 }
