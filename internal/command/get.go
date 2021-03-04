@@ -16,6 +16,6 @@ func init() {
 func Get(conn net.Conn, args ...[]byte) {
 	key := string(args[0])
 	value, _ := localNode.Get(key)
-	resp, _ := protocol.MarshalBytesArray(value)
+	resp, _ := protocol.MarshalReplyBulkBytes(value)
 	conn.Write(resp)
 }

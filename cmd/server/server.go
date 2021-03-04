@@ -40,8 +40,10 @@ func handleConn(conn net.Conn) {
 		for _, cmd := range cmds {
 			fmt.Println(string(cmd))
 		}
-		// conn.Write([]byte("aa"))
-
+		if cmds == nil || len(cmds) == 0 {
+			conn.Close()
+			return
+		}
 		handleCommand(conn, cmds...)
 	}
 }

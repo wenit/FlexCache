@@ -16,6 +16,11 @@ func init() {
 func Exists(conn net.Conn, args ...[]byte) {
 	key := string(args[0])
 	value, _ := localNode.Get(key)
-	resp, _ := protocol.MarshalBytesArray(value)
-	conn.Write(resp)
+	if value == nil {
+		resp := protocol.MarshalIntergerReply(0)
+		conn.Write(resp)
+	} else {
+		resp := protocol.MarshalIntergerReply(1)
+		conn.Write(resp)
+	}
 }

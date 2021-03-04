@@ -93,6 +93,21 @@ func MarshalBytes(cmd []byte) ([]byte, error) {
 	return reqBuffer.Bytes(), nil
 }
 
+// MarshalReplyBulkBytes 批量回复
+func MarshalReplyBulkBytes(cmd []byte) ([]byte, error) {
+	var respBuffer bytes.Buffer
+	length := len(cmd)
+	if cmd == nil || len(cmd) == 0 {
+		length = -1
+		respBuffer.WriteString(ReplyBulk + strconv.Itoa(length) + NewLine)
+	} else {
+		respBuffer.WriteString(ReplyBulk + strconv.Itoa(length) + NewLine)
+		respBuffer.Write(cmd)
+		respBuffer.WriteString(NewLine)
+	}
+	return respBuffer.Bytes(), nil
+}
+
 // MarshalBytesArray 多命令参数
 func MarshalBytesArray(cmds ...[]byte) ([]byte, error) {
 	var buffer bytes.Buffer
@@ -207,10 +222,15 @@ func ReadSingleLineReply(data []byte) []byte {
 }
 
 // MarshalIntergerReply 返回整型编码数据
-// func MarshalIntergerReply(length int) []byte {
-// 	n := IntToBytes(length)
-
-// }
+func MarshalIntergerReply(length int) []byte {
+	n := IntToBytes(length)
+	buf := make([]byte, 0)
+	buffer := bytes.NewBuffer(buf)
+	buffer.WriteString(ReplyInteger)
+	buffer.Write(n)
+	buffer.WriteString(NewLine)
+	return buffer.Bytes()
+}
 
 // IntToBytes int类型转bytes
 func IntToBytes(n int) []byte {
