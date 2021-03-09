@@ -44,6 +44,14 @@ func (n *Node) Set(key string, value []byte) error {
 	return nil
 }
 
+// Del 删除数据
+func (n *Node) Del(key string) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	delete(n.Data, key)
+	return nil
+}
+
 // NewNode create node instance
 func NewNode(ip string, port int) *Node {
 	return &Node{
